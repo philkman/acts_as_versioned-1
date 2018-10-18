@@ -275,7 +275,8 @@ module ActiveRecord #:nodoc:
           before_save :set_new_version
           after_save :save_version
           after_save :clear_old_versions
-          before_destroy :update_valid_until_field
+          before_destroy :remember_old_id
+          after_destroy :update_valid_until_field
         end
 
         # Saves a version of the model in the versioned table.  This is called in the after_save callback by default
@@ -294,10 +295,18 @@ module ActiveRecord #:nodoc:
           end
         end
 
+        def remember_old_id
+          @old_id = id
+        end
+
         # Set the valid until field when a class will be destroyed
         def update_valid_until_field
           rev = self.versions.latest
-          rev.update_attribute(:valid_until, Time.now) if rev
+          unless rev
+            rev = self.class.versioned_class.create
+            clone_versioned_model(self, rev)
+          end
+          rev.update_attributes(self.class.versioned_foreign_key => @old_id, valid_until: Time.now)
         end
 
         # Clears old revisions if a limit is set with the :limit option in <tt>acts_as_versioned</tt>.
