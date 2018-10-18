@@ -1,3 +1,3 @@
 module DbActsAsVersioned
-  VERSION = "3.5.0"
+  VERSION = "3.15.1"
 end

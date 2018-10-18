@@ -477,10 +477,14 @@ module ActiveRecord #:nodoc:
             end
 
             # Limit index name length to 63, the Postgresql limit of NAMEDATALEN-1.
-            name = 'index_' + versioned_table_name + '_on_' + versioned_foreign_key
-            self.connection.add_index versioned_table_name, versioned_foreign_key, :name => name[0,63]
-            self.connection.add_index versioned_table_name, :valid_from
-            self.connection.add_index versioned_table_name, :valid_until
+            [versioned_foreign_key, 'valid_from', 'valid_until'].each do |key|
+              name    = 'index_' + versioned_table_name + '_on_' + key
+              len     = name.length
+              shorten = len - 64
+              name    = 'index_' + versioned_table_name[0..-(shorten + 1)] + '_on_' + key if shorten > 0
+
+              self.connection.add_index versioned_table_name, key, :name => name
+            end
           end
 
           # Rake migration task to drop the versioned table
