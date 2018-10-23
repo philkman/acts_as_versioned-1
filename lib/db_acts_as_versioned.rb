@@ -280,12 +280,14 @@ module ActiveRecord #:nodoc:
         end
 
         # Saves a version of the model in the versioned table.  This is called in the after_save callback by default
-        def save_version(force: false)
+        def save_version(force: false, update_prev_rev: true)
           if @saving_version || force
             @saving_version = nil
             now = Time.now
-            prev_rev = self.versions.latest
-            prev_rev.update_attribute(:valid_until, now) if prev_rev
+            if update_prev_rev
+              prev_rev = self.versions.latest
+              prev_rev.update_attribute(:valid_until, now) if prev_rev
+            end
             rev = self.class.versioned_class.create
             clone_versioned_model(self, rev)
             rev.send("#{self.class.version_column}=", send(self.class.version_column))
@@ -425,9 +427,9 @@ module ActiveRecord #:nodoc:
 
         protected
         # sets the new version before saving, unless you're using optimistic locking.  In that case, let it take care of the version.
-        def set_new_version
-          @saving_version = new_record? || save_version?
-          self.send("#{self.class.version_column}=", next_version) if new_record? || (!locking_enabled? && save_version?)
+        def set_new_version(force: false)
+          @saving_version = new_record? || save_version? || force
+          self.send("#{self.class.version_column}=", next_version) if new_record? || (!locking_enabled? && save_version?) || force
         end
 
         # Gets the next available version for the current record, or 1 for a new record
