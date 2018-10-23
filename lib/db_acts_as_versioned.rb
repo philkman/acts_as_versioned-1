@@ -280,8 +280,8 @@ module ActiveRecord #:nodoc:
         end
 
         # Saves a version of the model in the versioned table.  This is called in the after_save callback by default
-        def save_version
-          if @saving_version
+        def save_version(force: false)
+          if @saving_version || force
             @saving_version = nil
             now = Time.now
             prev_rev = self.versions.latest
